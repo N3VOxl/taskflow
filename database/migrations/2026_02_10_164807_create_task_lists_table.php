@@ -13,10 +13,9 @@ return new class extends Migration
 {
     Schema::create('task_lists', function (Blueprint $table) {
         $table->id();
-        // Relationship: A List belongs to a Board
         $table->foreignId('board_id')->constrained()->cascadeOnDelete();
         $table->string('name');
-        $table->integer('position')->default(0); // To keep lists in order
+        $table->integer('position')->default(0);
         $table->timestamps();
     });
 }

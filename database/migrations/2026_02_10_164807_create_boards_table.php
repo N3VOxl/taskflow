@@ -13,10 +13,9 @@ return new class extends Migration
 {
     Schema::create('boards', function (Blueprint $table) {
         $table->id();
-        // Relationship: A Board belongs to a Workspace
         $table->foreignId('workspace_id')->constrained()->cascadeOnDelete();
         $table->string('title');
-        $table->string('color')->default('#ffffff'); // For UI styling
+        $table->string('color')->default('#ffffff');
         $table->timestamps();
     });
 }

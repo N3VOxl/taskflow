@@ -13,11 +13,10 @@ return new class extends Migration
 {
     Schema::create('cards', function (Blueprint $table) {
         $table->id();
-        // Relationship: A Card belongs to a List
         $table->foreignId('task_list_id')->constrained()->cascadeOnDelete();
         $table->string('title');
         $table->text('description')->nullable();
-        $table->integer('position')->default(0); // For drag-and-drop ordering
+        $table->integer('position')->default(0);
         $table->date('due_date')->nullable();
         $table->timestamps();
     });

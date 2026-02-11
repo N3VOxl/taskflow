@@ -10,7 +10,7 @@
         .board-container {
             display: flex;
             overflow-x: auto;
-            height: calc(100vh - 80px); /* Înălțime fixă pentru scroll orizontal */
+            height: calc(100vh - 80px);
             align-items: flex-start;
         }
         .list-card {
@@ -21,11 +21,10 @@
             flex-direction: column;
         }
         .cards-container {
-            overflow-y: auto; /* Scroll vertical pentru carduri */
-            min-height: 10px; /* Ca să putem pune carduri și în liste goale */
+            overflow-y: auto;
+            min-height: 10px;
             flex-grow: 1;
         }
-        /* Custom Scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
@@ -57,7 +56,6 @@
         if (!boardId) window.location.href = '/dashboard.html';
 
         function goBack() {
-             // Încercăm să ne întoarcem la workspace-ul anterior
              window.history.back();
         }
 
@@ -66,10 +64,8 @@
             window.location.href = '/login.html';
         }
 
-        // --- 1. Încărcăm Datele ---
         async function loadBoardData() {
             try {
-                // Fetch Liste + Carduri
                 const response = await fetch(`http://taskflow.test/api/boards/${boardId}/lists`, {
                     headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
                 });
@@ -83,7 +79,6 @@
                 const lists = await response.json();
                 renderLists(lists);
                 
-                // Setăm titlul generic (sau am putea face un fetch separat pentru numele board-ului)
                 document.getElementById('board-title').innerText = "Board View";
 
             } catch (error) {
@@ -91,7 +86,6 @@
             }
         }
 
-        // --- 2. Afișăm Listele și activăm Drag & Drop ---
         function renderLists(lists) {
             const container = document.getElementById('lists-container');
             container.innerHTML = ''; 
@@ -99,7 +93,6 @@
             lists.forEach(list => {
                 let cardsHtml = '';
                 
-                // Generăm Cardurile
                 list.cards.forEach(card => {
                     cardsHtml += `
                         <div class="bg-white p-2 rounded shadow-sm mb-2 hover:bg-gray-50 cursor-grab border border-gray-200 flex justify-between group relative" data-id="${card.id}">
@@ -114,7 +107,6 @@
                     `;
                 });
 
-                // HTML-ul pentru Listă
                 const listHtml = `
                     <div class="list-card bg-gray-100 rounded-lg p-2 shadow-lg flex-shrink-0">
                         <div class="flex justify-between items-center mb-2 px-1">
@@ -134,31 +126,27 @@
                 `;
                 container.innerHTML += listHtml;
 
-                // --- ACTIVARE SORTABLE JS (Drag & Drop) ---
-                // Folosim un mic delay ca să fim siguri că elementele sunt în DOM
                 setTimeout(() => {
                     const el = document.getElementById(`list-${list.id}`);
                     new Sortable(el, {
-                        group: 'shared', // Permite mutarea între liste
+                        group: 'shared',
                         animation: 150,
-                        ghostClass: 'bg-blue-100', // Culoarea locului unde va cădea cardul
-                        delay: 100, // Previne drag accidental pe touch
+                        ghostClass: 'bg-blue-100',
+                        delay: 100,
                         delayOnTouchOnly: true,
                         onEnd: function (evt) {
-                            const itemEl = evt.item;  // Elementul mutat
-                            const newParent = evt.to; // Noua listă
+                            const itemEl = evt.item; 
+                            const newParent = evt.to;
                             
                             const cardId = itemEl.getAttribute('data-id');
                             const newListId = newParent.getAttribute('data-list-id');
                             
-                            // Trimitem modificarea la Backend
                             updateCardPosition(cardId, newListId);
                         }
                     });
                 }, 50);
             });
 
-            // Butonul "Add another list" la final
             container.innerHTML += `
                 <div class="list-card flex-shrink-0">
                     <button onclick="createList()" class="w-full bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-left font-medium transition backdrop-blur-sm border border-white/10 shadow-sm">
@@ -168,7 +156,6 @@
             `;
         }
 
-        // --- 3. Logica de Backend ---
 
         async function createList() {
             const name = prompt("Enter list title:");
@@ -233,7 +220,6 @@
                 });
                 
                 if(res.ok) {
-                    // Reîncărcăm lista doar dacă a reușit ștergerea
                     loadBoardData();
                 } else {
                     alert("Error deleting card");
@@ -243,7 +229,6 @@
             }
         }
 
-        // Start
         loadBoardData();
     </script>
 </body>

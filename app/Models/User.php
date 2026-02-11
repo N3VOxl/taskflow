@@ -10,7 +10,6 @@ use Illuminate\Notifications\Notifiable;
 
 class User extends Authenticatable
 {
-    // Aici folosim trait-ul importat mai sus
     use HasApiTokens, HasFactory, Notifiable;
 
     protected $fillable = [
@@ -29,7 +28,6 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // Relația cu Workspaces
     public function workspaces()
     {
         return $this->hasMany(Workspace::class);

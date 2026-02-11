@@ -9,17 +9,14 @@ use Illuminate\Http\Request;
 
 class TaskListController extends Controller
 {
-    // GET /api/boards/{board_id}/lists
     public function index(Request $request, $boardId)
     {
         $board = Board::findOrFail($boardId);
 
-        // Verificăm permisiunea
         if ($request->user()->id !== $board->workspace->user_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        // Returnăm listele IMPREUNĂ cu cardurile lor, ordonate
         $lists = $board->taskLists()->with(['cards' => function ($query) {
             $query->orderBy('position');
         }])->orderBy('position')->get();
@@ -27,7 +24,6 @@ class TaskListController extends Controller
         return response()->json($lists);
     }
 
-    // POST /api/boards/{board_id}/lists
     public function store(Request $request, $boardId)
     {
         $board = Board::findOrFail($boardId);
@@ -42,7 +38,7 @@ class TaskListController extends Controller
 
         $list = $board->taskLists()->create([
             'name' => $validated['name'],
-            'position' => $board->taskLists()->count() // O punem la final
+            'position' => $board->taskLists()->count()
         ]);
 
         return response()->json($list, 201);

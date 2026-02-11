@@ -41,7 +41,6 @@
         const token = localStorage.getItem('auth_token');
         if (!token) window.location.href = '/login.html';
 
-        // 1. Get Workspace ID from URL (e.g., workspace.html?id=5)
         const urlParams = new URLSearchParams(window.location.search);
         const workspaceId = urlParams.get('id');
 
@@ -55,7 +54,6 @@
             window.location.href = '/login.html';
         }
 
-        // 2. Fetch Workspace Name
         async function loadWorkspaceDetails() {
             try {
                 const response = await fetch(`http://taskflow.test/api/workspaces/${workspaceId}`, {
@@ -68,13 +66,12 @@
                 }
 
                 const data = await response.json();
-                document.getElementById('workspace-title').innerText = data.data.name; // Set title
+                document.getElementById('workspace-title').innerText = data.data.name;
             } catch (error) {
                 console.error("Error loading workspace:", error);
             }
         }
 
-        // 3. Fetch Boards
         async function loadBoards() {
             try {
                 const response = await fetch(`http://taskflow.test/api/workspaces/${workspaceId}/boards`, {
@@ -110,7 +107,6 @@
             }
         }
 
-        // 4. Create New Board Logic
         async function createBoard() {
             const title = prompt("Enter board title (e.g., Marketing Campaign):");
             if (!title) return;
@@ -127,7 +123,7 @@
                 });
 
                 if (response.ok) {
-                    loadBoards(); // Refresh list
+                    loadBoards();
                 } else {
                     alert("Failed to create board.");
                 }
@@ -136,13 +132,10 @@
             }
         }
 
-        // Placeholder for next step
         function openBoard(boardId) {
-            // We will build board.html in the next step
             window.location.href = `/board.html?id=${boardId}`;
         }
 
-        // Init
         loadWorkspaceDetails();
         loadBoards();
     </script>

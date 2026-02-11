@@ -10,25 +10,24 @@
     <nav class="bg-white shadow p-4 mb-8">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="font-bold text-xl text-blue-600">TaskFlow</h1>
-            <button onclick="logout()" class="text-gray-600 hover:text-red-500 font-medium">Deconectare</button>
+            <button onclick="logout()" class="text-gray-600 hover:text-red-500 font-medium">Logout</button>
         </div>
     </nav>
 
     <div class="container mx-auto px-4">
         <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-800">Proiectele Mele</h2>
-            <button onclick="createWorkspace()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Proiect Nou</button>
+            <h2 class="text-2xl font-bold text-gray-800">My projects</h2>
+            <button onclick="createWorkspace()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ New Project</button>
         </div>
 
         <div id="workspace-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <p class="text-gray-500">Se încarcă datele...</p>
+            <p class="text-gray-500">Loading...</p>
         </div>
     </div>
 
     <script>
         const token = localStorage.getItem('auth_token');
 
-        // Protecție: Dacă nu ai token, te trimite la login.html
         if (!token) window.location.href = '/login.html';
 
         function logout() {
@@ -56,9 +55,7 @@
                     return;
                 }
 
-                // Generăm HTML pentru fiecare proiect
                 data.data.forEach(workspace => {
-                    // Când dai click, te trimite la workspace.html cu ID-ul în URL
                     const card = `
                         <div onclick="window.location.href='/workspace.html?id=${workspace.id}'" 
                              class="cursor-pointer bg-white p-6 rounded-lg shadow hover:shadow-md transition border border-gray-100 hover:border-blue-500">
@@ -71,12 +68,12 @@
 
             } catch (error) {
                 console.error(error);
-                alert('Eroare la conexiune');
+                alert('Connection error');
             }
         }
 
         async function createWorkspace() {
-            const name = prompt("Numele proiectului:");
+            const name = prompt("Project name:");
             if (!name) return;
 
             await fetch('http://taskflow.test/api/workspaces', {
@@ -92,7 +89,6 @@
             fetchWorkspaces();
         }
 
-        // Pornim funcția imediat ce se încarcă pagina
         fetchWorkspaces();
     </script>
 </body>

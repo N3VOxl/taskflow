@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Board - TaskFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.0/Sortable.min.js"></script>
+    <style>
+        .board-container {
+            display: flex;
+            overflow-x: auto;
+            height: calc(100vh - 80px); /* Înălțime fixă pentru scroll orizontal */
+            align-items: flex-start;
+        }
+        .list-card {
+            min-width: 280px;
+            max-width: 280px;
+            max-height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .cards-container {
+            overflow-y: auto; /* Scroll vertical pentru carduri */
+            min-height: 10px; /* Ca să putem pune carduri și în liste goale */
+            flex-grow: 1;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-blue-600 h-screen overflow-hidden"> 
+    
+    <nav class="bg-black/20 text-white p-3 flex justify-between items-center backdrop-blur-sm h-[60px]">
+        <div class="flex items-center gap-4">
+            <button onclick="goBack()" class="font-bold hover:bg-white/20 px-3 py-1 rounded transition">
+                &larr; Back
+            </button>
+            <h1 id="board-title" class="font-bold text-lg px-2 border-l border-white/30">Loading...</h1>
+        </div>
+        <button onclick="logout()" class="text-sm bg-red-500 hover:bg-red-600 px-3 py-1 rounded transition shadow">Logout</button>
+    </nav>
+
+    <div class="p-4 board-container gap-4" id="lists-container">
+        </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = '/login.html';
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const boardId = urlParams.get('id');
+
+        if (!boardId) window.location.href = '/dashboard.html';
+
+        function goBack() {
+             // Încercăm să ne întoarcem la workspace-ul anterior
+             window.history.back();
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login.html';
+        }
+
+        // --- 1. Încărcăm Datele ---
+        async function loadBoardData() {
+            try {
+                // Fetch Liste + Carduri
+                const response = await fetch(`http://taskflow.test/api/boards/${boardId}/lists`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+
+                if (response.status === 403) {
+                    alert("Unauthorized access to this board.");
+                    window.location.href = '/dashboard.html';
+                    return;
+                }
+
+                const lists = await response.json();
+                renderLists(lists);
+                
+                // Setăm titlul generic (sau am putea face un fetch separat pentru numele board-ului)
+                document.getElementById('board-title').innerText = "Board View";
+
+            } catch (error) {
+                console.error("Error loading board:", error);
+            }
+        }
+
+        // --- 2. Afișăm Listele și activăm Drag & Drop ---
+        function renderLists(lists) {
+            const container = document.getElementById('lists-container');
+            container.innerHTML = ''; 
+
+            lists.forEach(list => {
+                let cardsHtml = '';
+                
+                // Generăm Cardurile
+                list.cards.forEach(card => {
+                    cardsHtml += `
+                        <div class="bg-white p-2 rounded shadow-sm mb-2 hover:bg-gray-50 cursor-grab border border-gray-200 flex justify-between group relative" data-id="${card.id}">
+                            <span class="text-gray-800 text-sm break-words w-full pr-4">${card.title}</span>
+                            
+                            <button onclick="deleteCard(${card.id})" class="absolute top-1 right-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition p-1 bg-white/80 rounded">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
+                    `;
+                });
+
+                // HTML-ul pentru Listă
+                const listHtml = `
+                    <div class="list-card bg-gray-100 rounded-lg p-2 shadow-lg flex-shrink-0">
+                        <div class="flex justify-between items-center mb-2 px-1">
+                            <h3 class="font-bold text-gray-700 text-sm">${list.name}</h3>
+                        </div>
+                        
+                        <div class="cards-container pr-1" id="list-${list.id}" data-list-id="${list.id}">
+                            ${cardsHtml}
+                        </div>
+
+                        <div class="mt-2 pt-1">
+                            <button onclick="createCard(${list.id})" class="w-full text-left text-gray-500 hover:bg-gray-200 hover:text-gray-700 p-2 rounded text-sm transition flex items-center gap-2">
+                                <span>+</span> Add a card
+                            </button>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += listHtml;
+
+                // --- ACTIVARE SORTABLE JS (Drag & Drop) ---
+                // Folosim un mic delay ca să fim siguri că elementele sunt în DOM
+                setTimeout(() => {
+                    const el = document.getElementById(`list-${list.id}`);
+                    new Sortable(el, {
+                        group: 'shared', // Permite mutarea între liste
+                        animation: 150,
+                        ghostClass: 'bg-blue-100', // Culoarea locului unde va cădea cardul
+                        delay: 100, // Previne drag accidental pe touch
+                        delayOnTouchOnly: true,
+                        onEnd: function (evt) {
+                            const itemEl = evt.item;  // Elementul mutat
+                            const newParent = evt.to; // Noua listă
+                            
+                            const cardId = itemEl.getAttribute('data-id');
+                            const newListId = newParent.getAttribute('data-list-id');
+                            
+                            // Trimitem modificarea la Backend
+                            updateCardPosition(cardId, newListId);
+                        }
+                    });
+                }, 50);
+            });
+
+            // Butonul "Add another list" la final
+            container.innerHTML += `
+                <div class="list-card flex-shrink-0">
+                    <button onclick="createList()" class="w-full bg-white/20 hover:bg-white/30 text-white p-3 rounded-lg text-left font-medium transition backdrop-blur-sm border border-white/10 shadow-sm">
+                        + Add another list
+                    </button>
+                </div>
+            `;
+        }
+
+        // --- 3. Logica de Backend ---
+
+        async function createList() {
+            const name = prompt("Enter list title:");
+            if (!name) return;
+
+            await fetch(`http://taskflow.test/api/boards/${boardId}/lists`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ name })
+            });
+            loadBoardData();
+        }
+
+        async function createCard(listId) {
+            const title = prompt("Enter card title:");
+            if (!title) return;
+
+            await fetch(`http://taskflow.test/api/lists/${listId}/cards`, {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json', 
+                    'Accept': 'application/json' 
+                },
+                body: JSON.stringify({ title })
+            });
+            loadBoardData();
+        }
+
+        async function updateCardPosition(cardId, newListId) {
+            try {
+                await fetch(`http://taskflow.test/api/cards/${cardId}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json' 
+                    },
+                    body: JSON.stringify({ task_list_id: newListId })
+                });
+                console.log("Moved card", cardId, "to list", newListId);
+            } catch (error) {
+                console.error("Failed to move card", error);
+                alert("Connection error. Move not saved.");
+            }
+        }
+
+        async function deleteCard(cardId) {
+            if (!confirm("Are you sure you want to delete this card?")) return;
+
+            try {
+                const res = await fetch(`http://taskflow.test/api/cards/${cardId}`, {
+                    method: 'DELETE',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Accept': 'application/json' 
+                    }
+                });
+                
+                if(res.ok) {
+                    // Reîncărcăm lista doar dacă a reușit ștergerea
+                    loadBoardData();
+                } else {
+                    alert("Error deleting card");
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Start
+        loadBoardData();
+    </script>
+</body>
+</html>

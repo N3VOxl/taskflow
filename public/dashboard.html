@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - TaskFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow p-4 mb-8">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="font-bold text-xl text-blue-600">TaskFlow</h1>
+            <button onclick="logout()" class="text-gray-600 hover:text-red-500 font-medium">Deconectare</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-bold text-gray-800">Proiectele Mele</h2>
+            <button onclick="createWorkspace()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">+ Proiect Nou</button>
+        </div>
+
+        <div id="workspace-list" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <p class="text-gray-500">Se încarcă datele...</p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+
+        // Protecție: Dacă nu ai token, te trimite la login.html
+        if (!token) window.location.href = '/login.html';
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login.html';
+        }
+
+        async function fetchWorkspaces() {
+            try {
+                const response = await fetch('http://taskflow.test/api/workspaces', {
+                    headers: { 
+                        'Authorization': `Bearer ${token}`, 
+                        'Accept': 'application/json' 
+                    }
+                });
+
+                if (response.status === 401) logout();
+
+                const data = await response.json();
+                const list = document.getElementById('workspace-list');
+                list.innerHTML = ''; 
+
+                if (data.data.length === 0) {
+                    list.innerHTML = '<p class="text-gray-500">Nu ai niciun proiect.</p>';
+                    return;
+                }
+
+                // Generăm HTML pentru fiecare proiect
+                data.data.forEach(workspace => {
+                    // Când dai click, te trimite la workspace.html cu ID-ul în URL
+                    const card = `
+                        <div onclick="window.location.href='/workspace.html?id=${workspace.id}'" 
+                             class="cursor-pointer bg-white p-6 rounded-lg shadow hover:shadow-md transition border border-gray-100 hover:border-blue-500">
+                            <h3 class="font-bold text-lg text-gray-800 mb-2">${workspace.name}</h3>
+                            <p class="text-xs text-gray-400">Creat la: ${new Date(workspace.created_at).toLocaleDateString()}</p>
+                        </div>
+                    `;
+                    list.innerHTML += card;
+                });
+
+            } catch (error) {
+                console.error(error);
+                alert('Eroare la conexiune');
+            }
+        }
+
+        async function createWorkspace() {
+            const name = prompt("Numele proiectului:");
+            if (!name) return;
+
+            await fetch('http://taskflow.test/api/workspaces', {
+                method: 'POST',
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ name })
+            });
+
+            fetchWorkspaces();
+        }
+
+        // Pornim funcția imediat ce se încarcă pagina
+        fetchWorkspaces();
+    </script>
+</body>
+</html>

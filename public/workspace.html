@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace - TaskFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow p-4 mb-8">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <a href="/dashboard.html" class="font-bold text-xl text-blue-600 hover:text-blue-800">TaskFlow</a>
+                <span class="text-gray-300">|</span>
+                <a href="/dashboard.html" class="text-gray-600 hover:text-blue-600 text-sm">Dashboard</a>
+            </div>
+            <button onclick="logout()" class="text-gray-600 hover:text-red-500 text-sm font-medium">Logout</button>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4">
+        <div class="flex justify-between items-center mb-8 border-b pb-4">
+            <div>
+                <h1 id="workspace-title" class="text-3xl font-bold text-gray-800">Loading...</h1>
+                <p class="text-gray-500 text-sm mt-1">Manage your boards and tasks</p>
+            </div>
+            <button onclick="createBoard()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 shadow-md transition">
+                + New Board
+            </button>
+        </div>
+
+        <h2 class="text-lg font-semibold text-gray-700 mb-4">Your Boards</h2>
+        <div id="board-list" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            <div class="animate-pulse flex space-x-4">
+                <div class="bg-gray-200 h-32 w-full rounded"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('auth_token');
+        if (!token) window.location.href = '/login.html';
+
+        // 1. Get Workspace ID from URL (e.g., workspace.html?id=5)
+        const urlParams = new URLSearchParams(window.location.search);
+        const workspaceId = urlParams.get('id');
+
+        if (!workspaceId) {
+            alert("No workspace specified!");
+            window.location.href = '/dashboard.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('auth_token');
+            window.location.href = '/login.html';
+        }
+
+        // 2. Fetch Workspace Name
+        async function loadWorkspaceDetails() {
+            try {
+                const response = await fetch(`http://taskflow.test/api/workspaces/${workspaceId}`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                
+                if (response.status === 403) {
+                    alert("Unauthorized access to this workspace.");
+                    window.location.href = '/dashboard.html';
+                }
+
+                const data = await response.json();
+                document.getElementById('workspace-title').innerText = data.data.name; // Set title
+            } catch (error) {
+                console.error("Error loading workspace:", error);
+            }
+        }
+
+        // 3. Fetch Boards
+        async function loadBoards() {
+            try {
+                const response = await fetch(`http://taskflow.test/api/workspaces/${workspaceId}/boards`, {
+                    headers: { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' }
+                });
+                
+                const boards = await response.json();
+                const list = document.getElementById('board-list');
+                list.innerHTML = '';
+
+                if (boards.length === 0) {
+                    list.innerHTML = `
+                        <div class="col-span-full text-center py-10 bg-white rounded-lg border border-dashed border-gray-300">
+                            <p class="text-gray-500">No boards yet. Create your first one!</p>
+                        </div>`;
+                    return;
+                }
+
+                boards.forEach(board => {
+                    const card = `
+                        <div onclick="openBoard(${board.id})" class="cursor-pointer group relative bg-gradient-to-br from-blue-500 to-blue-600 h-32 rounded-lg shadow-md hover:shadow-xl transition-all p-4 transform hover:-translate-y-1">
+                            <h3 class="font-bold text-white text-lg shadow-black drop-shadow-md">${board.title}</h3>
+                            <div class="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition text-white text-xs bg-white/20 px-2 py-1 rounded">
+                                Open Board &rarr;
+                            </div>
+                        </div>
+                    `;
+                    list.innerHTML += card;
+                });
+
+            } catch (error) {
+                console.error("Error loading boards:", error);
+            }
+        }
+
+        // 4. Create New Board Logic
+        async function createBoard() {
+            const title = prompt("Enter board title (e.g., Marketing Campaign):");
+            if (!title) return;
+
+            try {
+                const response = await fetch(`http://taskflow.test/api/workspaces/${workspaceId}/boards`, {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ title })
+                });
+
+                if (response.ok) {
+                    loadBoards(); // Refresh list
+                } else {
+                    alert("Failed to create board.");
+                }
+            } catch (error) {
+                console.error(error);
+            }
+        }
+
+        // Placeholder for next step
+        function openBoard(boardId) {
+            // We will build board.html in the next step
+            window.location.href = `/board.html?id=${boardId}`;
+        }
+
+        // Init
+        loadWorkspaceDetails();
+        loadBoards();
+    </script>
+</body>
+</html>
